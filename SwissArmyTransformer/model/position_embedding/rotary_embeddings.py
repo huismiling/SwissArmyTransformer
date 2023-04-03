@@ -77,7 +77,7 @@ def rotate_half(x):
     return torch.cat((-x2, x1), dim=x1.ndim - 1)  # dim=-1 triggers a bug in earlier torch versions
 
 
-@torch.jit.script
+# @torch.jit.script
 def apply_rotary_pos_emb(q, k, cos, sin, offset: int = 0):
     cos, sin = cos[offset:q.shape[0] + offset, ...], sin[offset:q.shape[0] + offset, ...]
     return (q * cos) + (rotate_half(q) * sin), (k * cos) + (rotate_half(k) * sin)
@@ -95,7 +95,7 @@ def apply_rotary_pos_emb_fused(q, k, cos, sin, offset: int = 0):
     return q, k
 
 
-@torch.jit.script
+# @torch.jit.script
 def apply_rotary_pos_emb_index_single(q, cos, sin, position_id):
     # position_id: [sq, b], q, k: [sq, b, np, hn], cos: [sq, 1, hn] -> [sq, b, 1, hn]
     cos, sin = F.embedding(position_id, cos.squeeze(1)).unsqueeze(2), \
@@ -103,7 +103,7 @@ def apply_rotary_pos_emb_index_single(q, cos, sin, position_id):
     return (q * cos) + (rotate_half(q) * sin)
 
 
-@torch.jit.script
+# @torch.jit.script
 def apply_rotary_pos_emb_index(q, k, cos, sin, position_id):
     # position_id: [sq, b], q, k: [sq, b, np, hn], cos: [sq, 1, hn] -> [sq, b, 1, hn]
     cos, sin = F.embedding(position_id, cos.squeeze(1)).unsqueeze(2), \

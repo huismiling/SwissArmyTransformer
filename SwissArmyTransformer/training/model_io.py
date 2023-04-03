@@ -162,7 +162,7 @@ def load_checkpoint(model, args, load_path=None, prefix=''):
     if mpu.get_data_parallel_rank() == 0:
             print('global rank {} is loading checkpoint {}'.format(
                 torch.distributed.get_rank(), checkpoint_name))
-    sd = torch.load(checkpoint_name, map_location='cpu')
+    sd = torch.load(checkpoint_name, map_location=torch.mlu.current_device()) # 'cpu')
     new_sd = {'module':{}}
     for k in sd:
         if k != 'module':

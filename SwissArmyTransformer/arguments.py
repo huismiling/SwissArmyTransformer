@@ -115,7 +115,7 @@ def add_training_args(parser):
     # Efficiency.
     group.add_argument('--checkpoint-activations', action='store_true',
                        help='checkpoint activation to allow for training '
-                            'with larger models and sequences. become slow (< 1.5x), save CUDA memory.')
+                            'with larger models and sequences. become slow (< 1.5x), save mlu memory.')
     group.add_argument('--checkpoint-num-layers', type=int, default=1, # Inessential
                        help='chunk size (number of layers) for checkpointing. ')
     group.add_argument('--fp16', action='store_true',
@@ -298,7 +298,7 @@ def get_args(args_list=None):
 
     assert (args.train_iters is None)^(args.epochs is None)
 
-    args.cuda = torch.cuda.is_available()
+    args.mlu = torch.mlu.is_available()
 
     args.rank = int(os.getenv('RANK', '0'))
     args.world_size = int(os.getenv("WORLD_SIZE", '1'))
@@ -306,7 +306,7 @@ def get_args(args_list=None):
         args.local_rank = int(os.getenv("LOCAL_RANK", '0')) # torchrun
    
     if args.device == -1: # not set manually
-        args.device = args.rank % torch.cuda.device_count()
+        args.device = args.rank % torch.mlu.device_count()
         if args.local_rank is not None:
             args.device = args.local_rank
 
@@ -315,7 +315,7 @@ def get_args(args_list=None):
         raise ValueError(
             'LOCAL_RANK (default 0) and args.device inconsistent. '
             'This can only happens in inference mode. '
-            'Please use CUDA_VISIBLE_DEVICES=x for single-GPU training. '
+            'Please use MLU_VISIBLE_DEVICES=x for single-GPU training. '
             )
 
     # args.model_parallel_size = min(args.model_parallel_size, args.world_size)
@@ -411,7 +411,7 @@ def initialize_distributed(args):
     if torch.distributed.is_initialized():
         return 
     # the automatic assignment of devices has been moved to arguments.py 
-    torch.cuda.set_device(args.device)
+    torch.mlu.set_device(args.device)
     # Call the init process
     init_method = 'tcp://'
     args.master_ip = os.getenv('MASTER_ADDR', 'localhost')
@@ -420,7 +420,7 @@ def initialize_distributed(args):
     torch.distributed.init_process_group(
         backend=args.distributed_backend,
         world_size=args.world_size, rank=args.rank,
-        init_method=init_method)
+        init_method="env://")
 
     # Set the model-parallel / data-parallel communicators.
     mpu.initialize_model_parallel(args.model_parallel_size)
@@ -437,11 +437,11 @@ def set_random_seed(seed):
         random.seed(seed)
         np.random.seed(seed)
         torch.manual_seed(seed)
-        torch.cuda.manual_seed(seed)
-        torch.cuda.manual_seed_all(seed)  # if you are using multi-GPU.
+        torch.mlu.manual_seed(seed)
+        torch.mlu.manual_seed_all(seed)  # if you are using multi-GPU.
         torch.backends.cudnn.benchmark = True
         torch.backends.cudnn.deterministic = True
         torch.backends.cudnn.enabled = True # False
-        torch.backends.cuda.matmul.allow_tf32 = False # if set it to True will be much faster but not accurate
+        torch.backends.mlu.matmul.allow_tf32 = False # if set it to True will be much faster but not accurate
         if deepspeed.checkpointing.is_configured():
-            mpu.model_parallel_cuda_manual_seed(seed)
+            mpu.model_parallel_mlu_manual_seed(seed)

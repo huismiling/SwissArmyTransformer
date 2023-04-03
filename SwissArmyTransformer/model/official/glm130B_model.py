@@ -47,7 +47,7 @@ class RotaryEmbeddingMixin(BaseMixin):
             base=10000,
             precision=torch.half if fp16 else torch.float,
             learnable=False,
-            device=torch.cuda.current_device(),
+            device=torch.mlu.current_device(),
         )
 
     def attention_forward(self, hidden_states, mask, **kw_args):
@@ -240,7 +240,7 @@ class SelfAttentionWithFP32SoftmaxMixin(BaseMixin):
             output_size[2],
             output_size[3],
             dtype=query_layer.dtype,
-            device=torch.cuda.current_device(),
+            device=torch.mlu.current_device(),
         )
 
         matmul_result = torch.baddbmm(
@@ -273,8 +273,8 @@ class SelfAttentionWithFP32SoftmaxMixin(BaseMixin):
             attention_probs = attention_probs.half()
 
         if attention_dropout is not None:
-            if mpu.get_cuda_rng_tracker is not None:
-                with mpu.get_cuda_rng_tracker().fork():
+            if mpu.get_mlu_rng_tracker is not None:
+                with mpu.get_mlu_rng_tracker().fork():
                     attention_probs = attention_dropout(attention_probs)
             else:
                 attention_probs = attention_dropout(attention_probs)
