@@ -1,5 +1,4 @@
 torch
-deepspeed
 sentencepiece
 tensorboardX
 datasets
